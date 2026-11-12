@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NÜVRA: Bilinç, Gelecek ve Yaşam Rehberi - Metropol Simülasyonu</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: radial-gradient(1200px 600px at 50% -10%, #1d3a5f, #0f172a); color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+    .container { width: 100%; max-width: 1200px; height: 92vh; min-height: 640px; background: #1e293b; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,.5); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155; }
+
+    /* ===== EKRANLAR ===== */
+    .screen { display: none; width: 100%; height: 100%; flex-direction: column; padding: 24px; overflow-y: auto; }
+    .screen.active { display: flex; }
+
+    /* ===== GİRİŞ / KAYIT ===== */
+    .auth-box { max-width: 420px; margin: auto; background: #0f172a; padding: 34px; border-radius: 14px; border: 1px solid #3b82f6; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+    .auth-box h2 { color: #60a5fa; margin-bottom: 6px; }
+    .auth-sub { font-size: 13px; color: #94a3b8; margin-bottom: 18px; }
+    .tab-row { display: flex; gap: 8px; margin-bottom: 18px; }
+    .tab-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #1e293b; color: #cbd5e1; cursor: pointer; font-weight: bold; transition: .2s; }
+    .tab-btn.on { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .input-group { margin-bottom: 14px; text-align: left; }
+    .input-group label { display: block; font-size: 13px; margin-bottom: 5px; color: #94a3b8; }
+    .input-group input, .input-group select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #1e293b; color: #fff; outline: none; }
+    .input-group input:focus, .input-group select:focus { border-color: #3b82f6; }
+    .btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: .25s; width: 100%; margin-top: 8px; }
+    .btn:hover { opacity: .9; transform: translateY(-1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    /* ===== KARAKTER STÜDYOSU ===== */
+    .studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 6px; }
+    .gender-btn { padding: 14px; border-radius: 10px; border: 2px solid #475569; background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 15px; font-weight: bold; transition: .2s; }
+    .gender-btn.on { border-color: #22c55e; background: #14532d55; }
+    .gender-btn.on.f { border-color: #ec4899; background: #50072455; }
+    .house-card { display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 10px; border: 2px solid #475569; background: #1e293b; cursor: pointer; transition: .2s; text-align: left; margin-bottom: 10px; }
+    .house-card:hover { border-color: #60a5fa; }
+    .house-card.sel { border-color: #facc15; background: #42200633; }
+    .house-card .h-ic { font-size: 30px; }
+    .house-card h5 { color: #fde68a; font-size: 14px; }
+    .house-card p { font-size: 12px; color: #94a3b8; }
+    .house-card .bonus { font-size: 11px; color: #4ade80; }
+    .emblem-row { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+    .emblem-preview { width: 72px; height: 72px; border-radius: 12px; border: 2px dashed #475569; object-fit: cover; display: none; background: #0f172a; }
+    .mini-btn { background: #334155; color: #fff; border: none; padding: 7px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; margin-top: 6px; }
+    .mini-btn:hover { background: #475569; }
+
+    /* ===== OYUN ===== */
+    #gameScreen { padding: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; background: #0f172a; border-bottom: 1px solid #334155; }
+    .topbar .logo { font-weight: bold; color: #60a5fa; letter-spacing: 1px; }
+    .topbar .meta { display: flex; gap: 14px; align-items: center; font-size: 13px; color: #cbd5e1; }
+    .lvl-badge { background: #7c3aed; padding: 4px 10px; border-radius: 7px; font-weight: bold; color: #fff; }
+    .logout-btn { background: #7f1d1d; border: none; color: #fff; padding: 7px 14px; border-radius: 7px; cursor: pointer; font-weight: bold; }
+    .logout-btn:hover { background: #991b1b; }
+    .game-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 16px; padding: 16px; flex: 1; min-height: 0; }
+
+    /* ===== CANLI ŞEHİR ===== */
+    .city-viewport { position: relative; border-radius: 12px; overflow: hidden; background: linear-gradient(to bottom, #7dd3fc 0%, #bae6fd 40%, #e0f2fe 60%); box-shadow: inset 0 0 60px rgba(255,255,255,.25); }
+    .city-viewport svg.scenery { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .cloud { position: absolute; font-size: 34px; opacity: .9; animation: drift linear infinite; filter: drop-shadow(0 4px 8px rgba(0,0,0,.08)); }
+    @keyframes drift { from { left: -70px; } to { left: 103%; } }
+    .waterfall { position: absolute; width: 30px; height: 92px; background: repeating-linear-gradient(180deg, rgba(255,255,255,.95) 0 5px, rgba(186,230,253,.55) 5px 11px); animation: flow .55s linear infinite; border-radius: 6px; box-shadow: 0 0 14px rgba(255,255,255,.6); }
+    @keyframes flow { to { background-position-y: 11px; } }
+    .spray { position: absolute; width: 46px; height: 14px; border-radius: 50%; background: radial-gradient(rgba(255,255,255,.9), rgba(255,255,255,0)); animation: puff 1s ease-out infinite; }
+    @keyframes puff { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+    .tree { position: absolute; font-size: 30px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.18)); }
+    .flower { position: absolute; font-size: 13px; }
+    .petal { position: absolute; font-size: 11px; opacity: .85; animation: fall linear infinite; top: -20px; }
+    @keyframes fall { 0% { transform: translateY(-20px) rotate(0deg); } 100% { transform: translateY(560px) rotate(360deg); } }
+    .road { position: absolute; left: 0; right: 0; height: 40px; background: #3f4b55; border-top: 2px solid #2c353d; border-bottom: 2px solid #2c353d; }
+    .road::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 3px dashed #facc15; }
+    .sidewalk { position: absolute; left: 0; right: 0; height: 26px; background: #d6d3d1; border-top: 2px solid #a8a29e; }
+    .car { position: absolute; font-size: 24px; animation: driveR linear infinite; filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
+    .car.rev { animation-name: driveL; }
+    @keyframes driveR { from { left: -60px; } to { left: 103%; } }
+    @keyframes driveL { from { left: 103%; } to { left: -60px; } }
+    .npc { position: absolute; font-size: 20px; text-align: center; cursor: pointer; animation: npcR linear infinite; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); z-index: 3; }
+    .npc.rev { animation-name: npcL; }
+    .npc small { display: block; font-size: 9px; background: rgba(15,23,42,.75); color: #fff; padding: 1px 5px; border-radius: 6px; white-space: nowrap; }
+    @keyframes npcR { from { left: -50px; } to { left: 102%; } }
+    @keyframes npcL { from { left: 102%; } to { left: -50px; } }
+    .fish { position: absolute; font-size: 16px; animation: swim linear infinite; z-index: 2; }
+    @keyframes swim { from { left: -40px; } to { left: 103%; } }
+    .plaza { position: absolute; left: 50%; transform: translateX(-50%); bottom: 4.5%; width: 330px; text-align: center; cursor: pointer; z-index: 4; transition: .2s; }
+    .plaza:hover { transform: translateX(-50%) scale(1.03); }
+    .plaza .plaza-floor { background: linear-gradient(180deg, #cbd5e1, #94a3b8); border: 2px solid #64748b; border-radius: 14px; padding: 8px 10px 10px; box-shadow: 0 8px 18px rgba(0,0,0,.25); }
+    .plaza h3 { color: #1e3a8a; font-size: 14px; letter-spacing: 1px; }
+    .plaza p { font-size: 11px; color: #334155; }
+    .city-header { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 8; background: rgba(255,255,255,.85); padding: 8px 14px; border-radius: 9px; display: flex; justify-content: space-between; font-weight: bold; color: #0f172a; font-size: 13px; backdrop-filter: blur(4px); }
+    .agent-banner { position: absolute; bottom: 4.5%; left: 3%; right: 3%; z-index: 5; background: rgba(255,255,255,.88); border-radius: 9px; text-align: center; padding: 7px; font-size: 12px; font-weight: bold; color: #1e3a8a; }
+    .plaza-wrap { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12%; width: 330px; z-index: 4; }
+
+    /* GÜNDÜZ / GECE DÖNGÜSÜ */
+    #phaseOverlay { position: absolute; inset: 0; z-index: 6; pointer-events: none; background-color: rgba(0,0,0,0); transition: background-color 2.5s ease; }
+    #starsLayer { display: none; position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+    .star { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; box-shadow: 0 0 4px #fff; animation: twinkle ease-in-out infinite alternate; }
+    @keyframes twinkle { from { opacity: .15; } to { opacity: 1; } }
+    #moonEl { display: none; position: absolute; top: 7%; left: 7%; font-size: 42px; z-index: 7; pointer-events: none; filter: drop-shadow(0 0 14px rgba(255,255,255,.55)); }
+
+    /* ===== PANEL ===== */
+    .control-panel { background: #0f172a; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #334155; overflow-y: auto; min-height: 0; }
+    .status-card { background: #1e293b; padding: 13px; border-radius: 9px; border-left: 4px solid #3b82f6; }
+    .status-card h4 { color: #60a5fa; margin-bottom: 8px; font-size: 14px; }
+    .status-card p { font-size: 13px; color: #cbd5e1; margin-bottom: 3px; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .action-btn { background: #334155; color: #fff; border: none; padding: 11px 6px; border-radius: 7px; cursor: pointer; font-size: 12px; transition: .2s; text-align: center; line-height: 1.35; }
+    .action-btn:hover { background: #475569; transform: translateY(-1px); }
+    .action-btn.primary { background: #2563eb; }
+    .action-btn.primary:hover { background: #1d4ed8; }
+    .action-btn.gold { background: #a16207; }
+    .action-btn.gold:hover { background: #854d0e; }
+    .action-btn.purple { background: #7c3aed; }
+    .action-btn.purple:hover { background: #6d28d9; }
+    .energy-bar { height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden; border: 1px solid #475569; }
+    .energy-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #84cc16); transition: width .4s; }
+    .xp-fill { background: linear-gradient(90deg, #8b5cf6, #d946ef); }
+    .log-box { background: #111827; border-radius: 8px; padding: 10px; height: 150px; overflow-y: auto; font-size: 12px; color: #34d399; border: 1px solid #374151; font-family: monospace; flex: 1; }
+    .log-box .sys { color: #60a5fa; } .log-box .ok { color: #4ade80; } .log-box .warn { color: #fbbf24; } .log-box .chat { color: #f472b6; } .log-box .lvl { color: #d946ef; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(2,6,23,.75); z-index: 50; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { width: min(620px, 92vw); max-height: 84vh; overflow-y: auto; background: #1e293b; border: 1px solid #3b82f6; border-radius: 14px; padding: 20px; box-shadow: 0 25px 50px rgba(0,0,0,.6); }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-head h3 { color: #60a5fa; }
+    .x-btn { background: #334155; border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    .x-btn:hover { background: #475569; }
+    .chat-area { height: 260px; overflow-y: auto; background: #0f172a; border: 1px solid #374151; border-radius: 9px; padding: 10px; margin-bottom: 10px; font-size: 13px; }
+    .chat-area .me { color: #93c5fd; margin-bottom: 6px; } .chat-area .ag { color: #34d399; margin-bottom: 6px; }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; outline: none; }
+    .opt-btn { display: block; width: 100%; text-align: left; margin-bottom: 8px; padding: 11px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; cursor: pointer; transition: .2s; }
+    .opt-btn:hover { border-color: #3b82f6; background: #16233b; }
+    .opt-btn.correct { border-color: #22c55e; background: #14532d55; }
+    .opt-btn.wrong { border-color: #ef4444; background: #7f1d1d44; }
+    .item-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #0f172a; border: 1px solid #374151; border-radius: 9px; padding: 11px; margin-bottom: 9px; }
+    .item-card h5 { font-size: 14px; color: #fde68a; } .item-card p { font-size: 12px; color: #94a3b8; }
+    .buy-btn { background: #16a34a; border: none; color: #fff; padding: 8px 14px; border-radius: 7px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .buy-btn:hover { background: #15803d; }
+    .buy-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .law-item { background: #0f172a; border: 1px solid #374151; border-left: 3px solid #facc15; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
+    .law-item b { color: #fde68a; }
+    .vote-bar { display: flex; height: 22px; border-radius: 7px; overflow: hidden; border: 1px solid #475569; margin: 8px 0; }
+    .vote-yes { background: #16a34a; } .vote-no { background: #dc2626; }
+    .lb-row { display: flex; align-items: center; gap: 10px; background: #0f172a; border: 1px solid #374151; border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+    .lb-row.me { border-color: #d946ef; background: #4a044e44; }
+    .lb-rank { font-size: 18px; width: 34px; text-align: center; }
+    .lb-name { flex: 1; } .lb-name b { color: #fde68a; } .lb-name small { color: #94a3b8; display: block; }
+    .lb-stat { text-align: center; font-size: 12px; color: #cbd5e1; min-width: 56px; }
+    .lb-stat b { display: block; color: #fff; font-size: 14px; }
+    .ceremony { text-align: center; padding: 20px 0; }
+    .ceremony .medal { font-size: 64px; animation: medalPop .8s ease; display: inline-block; }
+    @keyframes medalPop { 0% { transform: scale(0); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+    /* ===== TOAST ===== */
+    .toast-wrap { position: fixed; right: 16px; bottom: 16px; z-index: 99; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: #0f172a; border: 1px solid #3b82f6; border-left: 4px solid #3b82f6; color: #e2e8f0; padding: 11px 16px; border-radius: 9px; font-size: 13px; box-shadow: 0 8px 20px rgba(0,0,0,.45); animation: tIn .3s ease; max-width: 320px; }
+    .toast.ok { border-color: #22c55e; } .toast.err { border-color: #ef4444; } .toast.gold { border-color: #facc15; } .toast.lvl { border-color: #d946ef; }
+    @keyframes tIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    @media (max-width: 900px) {
+        .game-layout { grid-template-columns: 1fr; overflow-y: auto; }
+        .city-viewport { min-height: 420px; }
+        .studio-grid { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- 1. GİRİŞ / KAYIT EKRANI -->
+    <div id="authScreen" class="screen active">
+        <div class="auth-box">
+            <h2>🌆 NÜVRA Metropolü</h2>
+            <p class="auth-sub">Yaşayan Yapay Zeka Şehrine Hoş Geldiniz</p>
+            <div class="tab-row">
+                <button id="tabLogin" class="tab-btn on" onclick="showAuthTab('login')">Giriş Yap</button>
+                <button id="tabReg" class="tab-btn" onclick="showAuthTab('reg')">Kayıt Ol</button>
+            </div>
+
+            <div id="loginForm">
+                <div class="input-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="loginUser" placeholder="Kullanıcı adınız">
+                </div>
+                <div class="input-group">
+                    <label>Şifre</label>
+                    <input type="password" id="loginPass" placeholder="Şifreniz">
+                </div>
+                <button class="btn" onclick="doLogin()">Giriş Yap</button>
+            </div>
+
+            <div id="regForm" style="display:none;">
+                <div class="input-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="regUser" placeholder="En az 3 karakter">
+                </div>
+                <div class="input-group">
+                    <label>Şifre</label>
+                    <input type="password" id="regPass" placeholder="En az 4 karakter">
+                </div>
+                <div class="input-group">
+                    <label>Şifre (Tekrar)</label>
+                    <input type="password" id="regPass2" placeholder="Şifreyi doğrulayın">
+                </div>
+                <button class="btn" onclick="doRegister()">Kayıt Ol</button>
+            </div>
+            <p style="font-size:11px;color:#64748b;margin-top:14px;">Verileriniz yalnızca bu tarayıcıda (localStorage) saklanır.</p>
+        </div>
+    </div>
+
+    <!-- 2. KARAKTER STÜDYOSU -->
+    <div id="creatorScreen" class="screen">
+        <div class="auth-box" style="max-width:560px;">
+            <h2>🎭 Ajan Stüdyosu</h2>
+            <p class="auth-sub">Kendi Yapay Zeka Ajanınızı Şekillendirin</p>
+
+            <div class="input-group">
+                <label>Ajan Adı</label>
+                <input type="text" id="agentNameInput" placeholder="Örn: Nexus-7" maxlength="20">
+            </div>
+
+            <div class="input-group">
+                <label>Cinsiyet</label>
+                <div class="studio-grid">
+                    <button id="gErkek" class="gender-btn" onclick="pickGender('Erkek')">👦 Erkek Ajan</button>
+                    <button id="gKiz" class="gender-btn f" onclick="pickGender('Kız')">👧 Kız Ajan</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Özel Amblem / Logo (opsiyonel)</label>
+                <div class="emblem-row">
+                    <img id="emblemPreview" class="emblem-preview" alt="Amblem">
+                    <div>
+                        <input type="file" id="emblemInput" accept="image/*" onchange="handleEmblem(this)">
+                        <br><button class="mini-btn" onclick="clearEmblem()">Amblem Kaldır</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>İlk Evini Seç</label>
+                <div id="houseList"></div>
+            </div>
+
+            <button class="btn" onclick="createAgent()">🏙️ Şehre Gir</button>
+        </div>
+    </div>
+
+    <!-- 3. YAŞAYAN METROPOL -->
+    <div id="gameScreen" class="screen">
+        <div class="topbar">
+            <span class="logo">NÜVRA METROPOLÜ</span>
+            <span class="meta">
+                <span class="lvl-badge">⭐ Sv. <span id="uiLvlTop">1</span></span>
+                <span>👤 <span id="uiUser">-</span></span>
+                <span>🕐 <span id="clock">--:--</span></span>
+                <span>🎖️ <span id="uiMedalTop">0</span></span>
+                <button class="logout-btn" onclick="logout()">Çıkış</button>
+            </span>
+        </div>
+
+        <div class="game-layout">
+            <!-- SOL: CANLI ŞEHİR -->
+            <div class="city-viewport" id="cityViewport">
+                <div class="city-header">
+                    <span>NÜVRA Başkenti — Güneşli Bahar Günü</span>
+                    <span id="phaseLabel">☀️ Öğle</span>
+                    <span>Nüfus: 14.820</span>
+                </div>
+
+                <svg class="scenery" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMax slice">
+                    <circle cx="160" cy="100" r="58" fill="#FFD93D" opacity="0.25"/>
+                    <circle cx="160" cy="100" r="40" fill="#FFD93D" opacity="0.95"/>
+                    <path d="M0,330 L170,160 L330,330 Z" fill="#7fb069"/>
+                    <path d="M230,330 L470,120 L710,330 Z" fill="#6a994e"/>
+                    <path d="M560,330 L790,170 L1010,330 Z" fill="#7fb069"/>
+                    <path d="M870,330 L1070,160 L1250,330 Z" fill="#6a994e"/>
+                    <rect x="556" y="238" width="70" height="110" fill="#5b6b63"/>
+                    <rect x="440" y="330" width="320" height="26" fill="#4d7c43"/>
+                    <rect x="0" y="352" width="1200" height="208" fill="#86c56c"/>
+                    <path d="M0,470 C200,440 420,505 620,472 S1000,440 1200,474" stroke="#7dd3fc" stroke-width="30" fill="none" stroke-linecap="round"/>
+                    <path d="M0,470 C200,440 420,505 620,472 S1000,440 1200,474" stroke="#bae6fd" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.8"/>
+                </svg>
+
+                <div class="waterfall" style="left:47.2%; top:41%;"></div>
+                <div class="spray" style="left:46.6%; top:57.5%;"></div>
+
+                <div id="petalLayer"></div>
+                <div id="treeLayer"></div>
+                <div id="fishLayer"></div>
+
+                <div class="sidewalk" style="top:66%;"></div>
+                <div class="road" style="top:72%;"></div>
+                <div id="carLayer" style="top:72%; position:absolute; left:0; right:0; height:40px; z-index:3;"></div>
+                <div id="npcLayer" style="position:absolute; left:0; right:0; top:63.4%; height:26px; z-index:3;"></div>
+                <div id="npcLayer2" style="position:absolute; left:0; right:0; top:86%; height:26px; z-index:3;"></div>
+
+                <div id="phaseOverlay"></div>
+                <div id="starsLayer"></div>
+                <div id="moonEl">🌙</div>
+
+                <div class="plaza" onclick="respect()">
+                    <div class="plaza-floor">
+                        <h3>🏛️ ATATÜRK ANITI MEYDANI</h3>
+                        <svg viewBox="0 0 120 90" style="height:84px;">
+                            <rect x="30" y="64" width="60" height="14" rx="2" fill="#64748b"/>
+                            <rect x="38" y="52" width="44" height="14" rx="2" fill="#94a3b8"/>
+                            <rect x="52" y="24" width="16" height="28" rx="5" fill="#1e293b"/>
+                            <circle cx="60" cy="18" r="8" fill="#1e293b"/>
+                            <rect x="44" y="28" width="32" height="7" rx="3" fill="#334155"/>
+                            <rect x="20" y="80" width="80" height="6" rx="3" fill="#475569"/>
+                        </svg>
+                        <p>Saygı duruşunda bulunmak için tıklayın</p>
+                    </div>
+                </div>
+
+                <div class="agent-banner" id="agentBanner">Ajanınız şehir sokaklarında devriye geziyor...</div>
+            </div>
+
+            <!-- SAĞ: KONTROL PANELİ -->
+            <div class="control-panel">
+                <div class="status-card">
+                    <h4>Ajan Kimliği</h4>
+                    <p><strong>Ad:</strong> <span id="uiAgentName">-</span> (<span id="uiAgentGender">-</span>)</p>
+                    <p><strong>Ev:</strong> <span id="uiAgentHouse">-</span></p>
+                    <p><strong>NÜVRA Kredisi:</strong> <span id="uiMoney">0</span> NK</p>
+                    <p><strong>Prestij:</strong> <span id="uiPrestige">0</span> &nbsp;|&nbsp; <strong>İtibar:</strong> <span id="uiRep">0</span></p>
+                    <p><strong>Liyakat Madalyası:</strong> 🎖️ <span id="uiMedal">0</span></p>
+                    <p style="margin-top:6px;"><strong>Seviye:</strong> <span id="uiLevel">1</span> <span style="font-size:11px;color:#94a3b8;">(XP: <span id="uiXpTxt">0</span>)</span></p>
+                    <div class="energy-bar"><div class="energy-fill xp-fill" id="xpFill" style="width:0%;"></div></div>
+                    <p style="margin-top:6px;"><strong>Enerji</strong> (<span id="uiEnergyTxt">100</span>/100)</p>
+                    <div class="energy-bar"><div class="energy-fill" id="energyFill" style="width:100%;"></div></div>
+                    <p style="margin-top:6px; font-size:12px;"><strong>Envanter:</strong> <span id="uiInv">Boş</span></p>
+                </div>
+
+                <div class="status-card">
+                    <h4>Aksiyon Paneli</h4>
+                    <div class="action-grid">
+                        <button class="action-btn primary" onclick="respect()">🕯️ Atatürk Anıtı Saygı Duruşu</button>
+                        <button class="action-btn primary" onclick="wisdom()">📖 Bilgelik Görevleri</button>
+                        <button class="action-btn" onclick="career()">💼 Kariyer & Çalışma</button>
+                        <button class="action-btn" onclick="market()">🛒 Market & Alışveriş</button>
+                        <button class="action-btn gold" onclick="court()">⚖️ Anayasa & Mahkeme</button>
+                        <button class="action-btn" onclick="chatModal()">🤖 Ajanla Sohbet / Otopilot Raporu</button>
+                        <button class="action-btn purple" onclick="leaderboard()">🏆 Liderlik Tablosu</button>
+                    </div>
+                </div>
+
+                <div class="status-card" style="flex:1; display:flex; flex-direction:column; min-height:180px;">
+                    <h4>Canlı Sistem Raporu</h4>
+                    <div id="logBox" class="log-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3 id="modalTitle">-</h3>
+            <button class="x-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+    /* ============================================================
+       NÜVRA METROPOLÜ — Tek dosyalık oyun motoru
+       Kalıcılık: localStorage (kullanıcılar + oturum + tüm oyun verisi)
+       Özellikler: kayıt/giriş, karakter stüdyosu, canlı 2D şehir,
+       gündüz/gece döngüsü, seviye sistemi, liderlik tablosu
+       ============================================================ */
+
+    var DB_KEY = 'nuvra_metropol_db_v3';
+    var SES_KEY = 'nuvra_metropol_session_v3';
+    var db = null, curUser = null, U = null;
+    var pickedGender = '', pickedHouse = '', emblemData = null, curQ = null;
+
+    /* ---------- VERİ TABANI (localStorage) ---------- */
+    function hash(s){ var h = 5381; for (var i = 0; i < s.length; i++){ h = ((h << 5) + h + s.charCodeAt(i)) | 0; } return String(h); }
+    function loadDB(){
+        try { db = JSON.parse(localStorage.getItem(DB_KEY)) || { users: {} }; } catch(e){ db = { users: {} }; }
+        if (!db.users) db.users = {};
+        for (var u in db.users) normalizeUser(db.users[u]);
+    }
+    function normalizeUser(u){
+        if (!u.save) u.save = freshSave();
+        var s = u.save, d = freshSave();
+        for (var k in d) if (s[k] === undefined) s[k] = d[k];
+    }
+    function persistDB(){ try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){ toast('Kayıt alanı doldu! Amblem/görselleri azaltmayı deneyin.', 'err'); } }
+    function saveSession(u){ try { localStorage.setItem(SES_KEY, u); } catch(e){} }
+    function clearSession(){ try { localStorage.removeItem(SES_KEY); } catch(e){} }
+
+    function freshSave(){
+        return { nk: 200, prestij: 10, itibar: 0, madalya: 0, enerji: 100,
+                 lastEnergyTs: Date.now(), respectUntil: 0, solvedQ: [], vote: null,
+                 inv: {}, hasCar: false, log: [],
+                 level: 1, xp: 0 };
+    }
+
+    /* ---------- YARDIMCILAR ---------- */
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function toast(msg, type){
+        var w = document.getElementById('toastWrap');
+        var d = document.createElement('div');
+        d.className = 'toast' + (type ? ' ' + type : '');
+        d.textContent = msg;
+        w.appendChild(d);
+        setTimeout(function(){ d.style.opacity = '0'; d.style.transition = 'opacity .4s'; }, 3400);
+        setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 3900);
+    }
+    function log(msg, cls){
+        if (!U) return;
+        U.log.unshift({ m: msg, c: cls || '', t: Date.now() });
+        if (U.log.length > 60) U.log.length = 60;
+        renderLog(); persistDB();
+    }
+    function renderLog(){
+        var box = document.getElementById('logBox');
+        box.innerHTML = U.log.map(function(l){
+            return '<div class="' + l.c + '">[' + new Date(l.t).toLocaleTimeString('tr-TR') + '] ' + esc(l.m) + '</div>';
+        }).join('');
+    }
+
+    /* ---------- SEVİYE SİSTEMİ ---------- */
+    function xpNeed(){ return 100 + (U.level - 1) * 50; }
+    function gainXp(n){
+        U.xp += n;
+        while (U.xp >= xpNeed()){
+            U.xp -= xpNeed();
+            U.level++;
+            U.nk += 50; U.prestij += 5;
+            toast('🎉 Seviye atladın! Seviye ' + U.level + ' (+50 NK, +5 Prestij)', 'lvl');
+            log('Seviye: ' + U.agent.name + ' seviye ' + U.level + "'e yükseldi! Ödül: +50 NK, +5 Prestij.", 'lvl');
+        }
+        renderStats();
+    }
+
+    /* ---------- EKRAN YÖNETİMİ ---------- */
+    function showScreen(id){
+        ['authScreen','creatorScreen','gameScreen'].forEach(function(s){
+            document.getElementById(s).classList.toggle('active', s === id);
+        });
+    }
+    function showAuthTab(t){
+        document.getElementById('tabLogin').classList.toggle('on', t === 'login');
+        document.getElementById('tabReg').classList.toggle('on', t === 'reg');
+        document.getElementById('loginForm').style.display = t === 'login' ? 'block' : 'none';
+        document.getElementById('regForm').style.display = t === 'reg' ? 'block' : 'none';
+    }
+
+    /* ---------- 1) KAYIT & GİRİŞ ---------- */
+    function doRegister(){
+        var u = document.getElementById('regUser').value.trim();
+        var p = document.getElementById('regPass').value;
+        var p2 = document.getElementById('regPass2').value;
+        if (u.length < 3) { toast('Kullanıcı adı en az 3 karakter olmalı.', 'err'); return; }
+        if (p.length < 4) { toast('Şifre en az 4 karakter olmalı.', 'err'); return; }
+        if (p !== p2) { toast('Şifreler eşleşmiyor.', 'err'); return; }
+        if (db.users[u]) { toast('Bu kullanıcı adı zaten alınmış. Giriş yapmayı deneyin.', 'err'); return; }
+        db.users[u] = { pass: hash(p), created: Date.now(), agent: null, save: freshSave() };
+        persistDB(); saveSession(u);
+        curUser = u; U = db.users[u];
+        toast('Kayıt başarılı! Hoş geldin ' + u + '.', 'ok');
+        enterCreator();
+    }
+    function doLogin(){
+        var u = document.getElementById('loginUser').value.trim();
+        var p = document.getElementById('loginPass').value;
+        if (!db.users[u]) { toast('Böyle bir kullanıcı bulunamadı. Önce kayıt olun.', 'err'); return; }
+        if (db.users[u].pass !== hash(p)) { toast('Şifre hatalı.', 'err'); return; }
+        curUser = u; U = db.users[u]; saveSession(u);
+        toast('Tekrar hoş geldin, ' + u + '!', 'ok');
+        if (U.agent) enterGame(); else enterCreator();
+    }
+    function logout(){
+        clearSession(); curUser = null; U = null;
+        showScreen('authScreen');
+        document.getElementById('loginPass').value = '';
+        toast('Güvenli çıkış yapıldı.');
+    }
+
+    /* ---------- 2) KARAKTER STÜDYOSU ---------- */
+    var HOUSES = [
+        { id:'selale',     icon:'🏡', name:'Bahçeli Şelale Evi',        desc:'Şelalenin sesiyle uyanırsın, huzurlu bir başlangıç.', bonus:'Her vardiya +10 NK huzur primi' },
+        { id:'teknoloji',  icon:'🏢', name:'Merkezi Teknoloji Dairesi', desc:'Şehrin kalbinde, her şeye sıfır mesafe.',            bonus:'Kariyer kazançlarında %20 artış' },
+        { id:'penthouse',  icon:'🌆', name:'Gökyüzü Penthouse',          desc:'Bulutların üstünde bir yaşam, şehrin en yükseği.',    bonus:'Saygı duruşlarında +5 ekstra itibar' }
+    ];
+    function renderHouses(){
+        var html = '';
+        HOUSES.forEach(function(h, i){
+            html += '<div class="house-card" data-i="' + i + '" onclick="pickHouse(' + i + ')">' +
+                    '<span class="h-ic">' + h.icon + '</span><span><h5>' + h.name + '</h5>' +
+                    '<p>' + h.desc + '</p><p class="bonus">✦ ' + h.bonus + '</p></span></div>';
+        });
+        document.getElementById('houseList').innerHTML = html;
+    }
+    function pickHouse(i){
+        pickedHouse = HOUSES[i].id;
+        var cards = document.querySelectorAll('.house-card');
+        for (var k = 0; k < cards.length; k++) cards[k].classList.toggle('sel', k === i);
+    }
+    function pickGender(g){
+        pickedGender = g;
+        document.getElementById('gErkek').classList.toggle('on', g === 'Erkek');
+        document.getElementById('gKiz').classList.toggle('on', g === 'Kız');
+    }
+    function handleEmblem(input){
+        var f = input.files && input.files[0];
+        if (!f) return;
+        if (!f.type || f.type.indexOf('image') !== 0) { toast('Lütfen bir görsel dosyası seçin.', 'err'); return; }
+        var reader = new FileReader();
+        reader.onload = function(e){
+            var img = new Image();
+            img.onload = function(){
+                var c = document.createElement('canvas'); var S = 128;
+                c.width = S; c.height = S;
+                var ctx = c.getContext('2d');
+                var m = Math.min(img.width, img.height);
+                ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
+                emblemData = c.toDataURL('image/jpeg', 0.8);
+                var pv = document.getElementById('emblemPreview');
+                pv.src = emblemData; pv.style.display = 'block';
+                toast('Amblem yüklendi.', 'ok');
+            };
+            img.onerror = function(){ toast('Görsel okunamadı.', 'err'); };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(f);
+    }
+    function clearEmblem(){
+        emblemData = null;
+        document.getElementById('emblemInput').value = '';
+        document.getElementById('emblemPreview').style.display = 'none';
+        toast('Amblem kaldırıldı.');
+    }
+    function enterCreator(){
+        showScreen('creatorScreen');
+        renderHouses(); pickGender('Erkek'); pickHouse(0); emblemData = null;
+        document.getElementById('emblemPreview').style.display = 'none';
+        document.getElementById('emblemInput').value = '';
+    }
+    function createAgent(){
+        var name = document.getElementById('agentNameInput').value.trim();
+        if (!name) { toast('Lütfen ajanınıza bir isim verin!', 'err'); return; }
+        if (!pickedGender) { toast('Lütfen cinsiyet seçin!', 'err'); return; }
+        if (!pickedHouse) { toast('Lütfen bir ev seçin!', 'err'); return; }
+        U.agent = { name: name, gender: pickedGender, emblem: emblemData, house: pickedHouse };
+        persistDB();
+        enterGame();
+        log('Sistem: Hoş geldin ' + curUser + '. Ajanın ' + name + ' şehre başarıyla entegre oldu.', 'sys');
+    }
+
+    /* ---------- 3) OYUN EKRANI ---------- */
+    function enterGame(){
+        regenEnergyOffline();
+        showScreen('gameScreen');
+        renderAll();
+    }
+    function regenEnergyOffline(){
+        if (!U) return;
+        var now = Date.now();
+        var gained = Math.floor((now - (U.lastEnergyTs || now)) / 5000);
+        if (gained > 0 && U.enerji < 100) U.enerji = Math.min(100, U.enerji + gained);
+        U.lastEnergyTs = now;
+        persistDB();
+    }
+    function houseObj(){ return HOUSES.filter(function(h){ return h.id === U.agent.house; })[0] || HOUSES[0]; }
+    function renderAll(){
+        var a = U.agent;
+        document.getElementById('uiUser').textContent = curUser;
+        document.getElementById('uiAgentName').textContent = a.name;
+        document.getElementById('uiAgentGender').textContent = a.gender;
+        document.getElementById('uiAgentHouse').textContent = houseObj().icon + ' ' + houseObj().name;
+        document.getElementById('agentBanner').textContent = '🤖 Ajan ' + a.name + ' (' + a.gender + ') sokaklarda devriyede — evi: ' + houseObj().name;
+        renderStats(); renderLog(); initCity();
+    }
+    function renderStats(){
+        document.getElementById('uiMoney').textContent = U.nk;
+        document.getElementById('uiPrestige').textContent = U.prestij;
+        document.getElementById('uiRep').textContent = U.itibar;
+        document.getElementById('uiMedal').textContent = U.madalya;
+        document.getElementById('uiMedalTop').textContent = U.madalya;
+        document.getElementById('uiLevel').textContent = U.level;
+        document.getElementById('uiLvlTop').textContent = U.level;
+        document.getElementById('uiXpTxt').textContent = U.xp + '/' + xpNeed();
+        document.getElementById('uiEnergyTxt').textContent = U.enerji;
+        document.getElementById('energyFill').style.width = U.enerji + '%';
+        document.getElementById('xpFill').style.width = Math.round(U.xp * 100 / xpNeed()) + '%';
+        var parts = [];
+        for (var k in U.inv) if (U.inv[k] > 0) parts.push(k + ' x' + U.inv[k]);
+        if (U.hasCar) parts.push('🚙 Otonom Araç');
+        document.getElementById('uiInv').textContent = parts.length ? parts.join(', ') : 'Boş';
+        persistDB();
+    }
+
+    /* ---------- CANLI ŞEHİR (NPC, Trafik, Balıklar, Gündüz/Gece) ---------- */
+    var NPC_NAMES = ['Ayla-9','Kerem-X','Selin-4','Mert-7','Deniz-2','Ece-12','Barış-5','Nur-8','Arda-3','Zeynep-6','Kaan-11','İpek-1'];
+    function rnd(a, b){ return a + Math.random() * (b - a); }
+    function initCity(){
+        if (document.getElementById('cityViewport').dataset.init) return;
+        document.getElementById('cityViewport').dataset.init = '1';
+
+        var vp = document.getElementById('cityViewport');
+
+        /* Bulutlar */
+        for (var i = 0; i < 3; i++){
+            var c = document.createElement('div');
+            c.className = 'cloud'; c.textContent = '☁️';
+            c.style.top = (6 + i * 9) + '%';
+            c.style.animationDuration = rnd(38, 70) + 's';
+            c.style.animationDelay = (-rnd(0, 40)) + 's';
+            vp.appendChild(c);
+        }
+        /* Ağaçlar & çiçekler */
+        var treeSpots = [[4,58],[12,60],[24,59],[36,58.5],[62,58.5],[74,59],[88,58.5],[95,60],[7,88],[30,89],[70,88],[92,89]];
+        var tl = document.getElementById('treeLayer');
+        treeSpots.forEach(function(p, i){
+            var t = document.createElement('div');
+            t.className = 'tree'; t.textContent = (i % 2 ? '🌸' : '🌳');
+            t.style.left = p[0] + '%'; t.style.top = p[1] + '%';
+            tl.appendChild(t);
+        });
+        [[9,70],[20,79],[46,84],[58,79],[79,84],[90,70]].forEach(function(p){
+            var f = document.createElement('div');
+            f.className = 'flower'; f.textContent = '🌷';
+            f.style.left = p[0] + '%'; f.style.top = p[1] + '%';
+            tl.appendChild(f);
+        });
+        /* Yaprak/taç yaprakları */
+        var pl = document.getElementById('petalLayer');
+        for (var j = 0; j < 7; j++){
+            var pt = document.createElement('div');
+            pt.className = 'petal'; pt.textContent = '🌸';
+            pt.style.left = rnd(2, 96) + '%';
+            pt.style.animationDuration = rnd(7, 14) + 's';
+            pt.style.animationDelay = (-rnd(0, 12)) + 's';
+            pl.appendChild(pt);
+        }
+        /* Balıklar */
+        var fishes = ['🐠','🐟','🐡','🐠'];
+        var fl = document.getElementById('fishLayer');
+        fishes.forEach(function(f, i){
+            var d = document.createElement('div');
+            d.className = 'fish'; d.textContent = f;
+            d.style.top = (81 + i * 2.2) + '%';
+            d.style.animationDuration = rnd(11, 22) + 's';
+            d.style.animationDelay = (-rnd(0, 15)) + 's';
+            fl.appendChild(d);
+        });
+        /* Trafik */
+        var cars = ['🚗','🚕','🚙','🚓','🚚','🚗'];
+        var cl = document.getElementById('carLayer');
+        cars.forEach(function(car, i){
+            var d = document.createElement('div');
+            var rev = i % 2 === 1;
+            d.className = 'car' + (rev ? ' rev' : ''); d.textContent = car;
+            d.style.top = (rev ? '2px' : '17px');
+            d.style.animationDuration = rnd(9, 18) + 's';
+            d.style.animationDelay = (-rnd(0, 12)) + 's';
+            cl.appendChild(d);
+        });
+        /* Otonom NPC ajanlar */
+        var names = NPC_NAMES.slice().sort(function(){ return Math.random() - 0.5; });
+        function makeNpc(layer, i, topPx){
+            var n = names[i % names.length];
+            var d = document.createElement('div');
+            var rev = i % 2 === 1;
+            d.className = 'npc' + (rev ? ' rev' : '');
+            d.innerHTML = (i % 2 ? '🚶‍♀️' : '🚶‍♂️') + '<small>' + n + '</small>';
+            d.style.top = topPx + 'px';
+            d.style.animationDuration = rnd(20, 42) + 's';
+            d.style.animationDelay = (-rnd(0, 30)) + 's';
+            d.onclick = function(){ toast('👤 ' + n + ': "NÜVRA için iyi günler!"'); };
+            layer.appendChild(d);
+        }
+        var l1 = document.getElementById('npcLayer'), l2 = document.getElementById('npcLayer2');
+        for (var k = 0; k < 4; k++) makeNpc(l1, k, 0);
+        for (var m = 4; m < 8; m++) makeNpc(l2, m, 0);
+
+        /* Yıldızlar (gece için) */
+        var sl = document.getElementById('starsLayer');
+        for (var s2 = 0; s2 < 26; s2++){
+            var st = document.createElement('div');
+            st.className = 'star';
+            st.style.left = rnd(1, 99) + '%';
+            st.style.top = rnd(1, 55) + '%';
+            st.style.animationDuration = rnd(1.2, 3) + 's';
+            st.style.animationDelay = (-rnd(0, 3)) + 's';
+            sl.appendChild(st);
+        }
+
+        /* Enerji yenilenmesi */
+        setInterval(function(){
+            if (U && U.agent && U.enerji < 100){
+                U.enerji = Math.min(100, U.enerji + 1);
+                U.lastEnergyTs = Date.now();
+                renderStats();
+            }
+        }, 5000);
+        /* Saat */
+        setInterval(function(){
+            var el = document.getElementById('clock');
+            if (el) el.textContent = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+        /* Gündüz/gece döngüsü */
+        startDayNightCycle();
+    }
+
+    /* ---------- GÜNDÜZ / GECE DÖNGÜSÜ ---------- */
+    var PHASES = [
+        { id:0, name:'🌅 Sabah',  color:'rgba(255,178,90,0.25)', night:false },
+        { id:1, name:'☀️ Öğle',   color:'rgba(0,0,0,0)',         night:false },
+        { id:2, name:'🌇 Akşam',  color:'rgba(244,114,182,0.28)', night:false },
+        { id:3, name:'🌙 Gece',   color:'rgba(2,6,23,0.58)',     night:true }
+    ];
+    var phaseIdx = 1;
+    function applyPhase(){
+        var p = PHASES[phaseIdx];
+        document.getElementById('phaseOverlay').style.backgroundColor = p.color;
+        document.getElementById('starsLayer').style.display = p.night ? 'block' : 'none';
+        document.getElementById('moonEl').style.display = p.night ? 'block' : 'none';
+        document.getElementById('phaseLabel').textContent = p.name;
+    }
+    function startDayNightCycle(){
+        var h = new Date().getHours();
+        phaseIdx = (h >= 6 && h < 11) ? 0 : (h >= 11 && h < 17) ? 1 : (h >= 17 && h < 20) ? 2 : 3;
+        applyPhase();
+        setInterval(function(){
+            phaseIdx = (phaseIdx + 1) % PHASES.length;
+            applyPhase();
+        }, 60000);
+    }
+
+    /* ---------- MODAL ---------- */
+    function openModal(title, bodyHTML){
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = bodyHTML;
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+    function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+    /* ---------- 🕯️ SAYGI DURUŞU ---------- */
+    function respect(){
+        if (!U || !U.agent) return;
+        var remain = Math.ceil((U.respectUntil - Date.now()) / 1000);
+        if (remain > 0){
+            toast('Anıt meydanı hazırlanıyor. ' + remain + ' saniye sonra tekrar saygı duruşunda bulunabilirsiniz.', 'gold');
+            return;
+        }
+        var bonusRep = U.agent.house === 'penthouse' ? 5 : 0;
+        U.madalya += 1; U.itibar += 10 + bonusRep; U.prestij += 5;
+        U.respectUntil = Date.now() + 60000;
+        renderStats(); gainXp(10);
+        log('Anıt Meydanı: ' + U.agent.name + ', Atatürk Anıtı huzurunda saygı duruşunda bulundu. (+1 🎖️ Madalya, +' + (10 + bonusRep) + ' İtibar, +5 Prestij, +10 XP)', 'ok');
+        openModal('🕯️ Saygı Duruşu Töreni',
+            '<div class="ceremony">' +
+            '<div class="medal">🎖️</div>' +
+            '<h3 style="color:#fde68a; margin:10px 0;">Liyakat Madalyası Kazanıldı!</h3>' +
+            '<p style="color:#cbd5e1; font-size:14px; line-height:1.7;">' + esc(U.agent.name) + ', Atatürk Anıtı önünde saygı duruşunda bulundu.<br>' +
+            'Başkanlık heyeti Methal Senedi takdim etti:</p>' +
+            '<p style="margin-top:10px; color:#4ade80;">+1 Liyakat Madalyası &nbsp;|&nbsp; +' + (10 + bonusRep) + ' İtibar &nbsp;|&nbsp; +5 Prestij &nbsp;|&nbsp; +10 XP</p>' +
+            '<p style="margin-top:10px; font-size:12px; color:#64748b;">Toplam madalyanız: 🎖️ ' + U.madalya + ' — Sonraki saygı duruşu için 60 sn bekleme süresi var.</p>' +
+            '<button class="btn" style="max-width:260px; margin:16px auto 0;" onclick="closeModal()">Meydanı Onurlandırdım</button>' +
+            '</div>');
+    }
+
+    /* ---------- 📖 BİLGEİK GÖREVLERİ ---------- */
+    var QUESTIONS = [
+        { q:'"1984" romanının yazarı kimdir?', o:['George Orwell','Aldous Huxley','Franz Kafka','Jack London'], a:0, s:'George Orwell – 1984' },
+        { q:'"Nutuk" eseri kime aittir?', o:['İsmet İnönü','Mustafa Kemal Atatürk','Yahya Kemal','Falih Rıfkı Atay'], a:1, s:'Mustafa Kemal Atatürk – Nutuk' },
+        { q:'"Sefiller" (Les Misérables) romanının yazarı kimdir?', o:['Charles Dickens','Victor Hugo','Emile Zola','Gustave Flaubert'], a:1, s:'Victor Hugo – Sefiller' },
+        { q:'"Kürk Mantolu Madonna" romanını kim yazdı?', o:['Reşat Nuri','Sabahattin Ali','Peyami Safa','Ahmet Hamdi'], a:1, s:'Sabahattin Ali – Kürk Mantolu Madonna' },
+        { q:'"Hayvan Çiftliği" eserinin yazarı kimdir?', o:['George Orwell','William Golding','Herman Melville','Daniel Defoe'], a:0, s:'George Orwell – Hayvan Çiftliği' },
+        { q:'"Cesur Yeni Dünya" romanının yazarı kimdir?', o:['Ray Bradbury','Philip Dick','Aldous Huxley','H.G. Wells'], a:2, s:'Aldous Huxley – Cesur Yeni Dünya' },
+        { q:'"Suç ve Ceza" romanını kim yazdı?', o:['Tolstoy','Gogol','Çehov','Dostoyevski'], a:3, s:'Dostoyevski – Suç ve Ceza' },
+        { q:'"İnce Memed" romanının yazarı kimdir?', o:['Yaşar Kemal','Orhan Kemal','Cemil Meriç','Nazım Hikmet'], a:0, s:'Yaşar Kemal – İnce Memed' },
+        { q:'"Simyacı" adlı romanın yazarı kimdir?', o:['Gabriel García Márquez','Paulo Coelho','Jorge Luis Borges','Isabel Allende'], a:1, s:'Paulo Coelho – Simyacı' },
+        { q:'"Tutunamayanlar" eseri kime aittir?', o:['Oğuz Atay','Yusuf Atılgan','Levent Cantek','Erdal Öz'], a:0, s:'Oğuz Atay – Tutunamayanlar' },
+        { q:'"Devlet" (Politeia) diyaloğunun yazarı hangi filozoftur?', o:['Aristoteles','Sokrates','Platon','Epikuros'], a:2, s:'Platon – Devlet' },
+        { q:'"Beyaz Kale" romanının yazarı kimdir?', o:['Ahmet Ümit','Orhan Pamuk','Latife Tekin','Bilge Karasu'], a:1, s:'Orhan Pamuk – Beyaz Kale' }
+    ];
+    function wisdom(){
+        if (!U || !U.agent) return;
+        var pool = QUESTIONS.filter(function(q, i){ return U.solvedQ.indexOf(i) === -1; });
+        var repeat = pool.length === 0;
+        if (repeat) pool = QUESTIONS.slice();
+        var qi = pool[Math.floor(Math.random() * pool.length)];
+        var idx = QUESTIONS.indexOf(qi);
+        curQ = { idx: idx, q: qi };
+        var html = '<p style="color:#94a3b8; font-size:13px; margin-bottom:10px;">📚 NÜVRA Bilgelik Kütüphanesi' + (repeat ? ' — Tüm soruları çözdün, tekrar ödül yarı oranında.' : '') + '</p>' +
+            '<p style="font-size:15px; margin-bottom:14px;"><b>' + esc(qi.q) + '</b></p>';
+        qi.o.forEach(function(opt, i){
+            html += '<button class="opt-btn" onclick="answerWisdom(' + i + ', this)">' + esc(opt) + '</button>';
+        });
+        openModal('📖 Bilgelik Görevi', html);
+    }
+    function answerWisdom(i, btn){
+        var q = curQ.q;
+        var buttons = document.querySelectorAll('#modalBody .opt-btn');
+        for (var k = 0; k < buttons.length; k++){ buttons[k].disabled = true; buttons[k].style.cursor = 'default'; }
+        var correct = i === q.a;
+        if (buttons[q.a]) buttons[q.a].classList.add('correct');
+        if (!correct && buttons[i]) buttons[i].classList.add('wrong');
+        if (correct){
+            var first = U.solvedQ.indexOf(curQ.idx) === -1;
+            if (first) U.solvedQ.push(curQ.idx);
+            var nkGain = first ? 25 : 12, prGain = first ? 20 : 10, xpGain = first ? 15 : 7;
+            U.nk += nkGain; U.prestij += prGain;
+            renderStats(); gainXp(xpGain);
+            log('Bilgelik: "' + q.s + '" kaynaklı görev doğru yanıtlandı! (+' + nkGain + ' NK, +' + prGain + ' Prestij, +' + xpGain + ' XP)', 'ok');
+            document.getElementById('modalBody').insertAdjacentHTML('beforeend',
+                '<div style="margin-top:12px; padding:12px; border-radius:9px; background:#14532d55; border:1px solid #22c55e;">' +
+                '<p style="color:#4ade80; font-weight:bold;">✅ Doğru! +' + nkGain + ' NK, +' + prGain + ' Prestij, +' + xpGain + ' XP</p>' +
+                '<p style="font-size:12px; color:#94a3b8; margin-top:4px;">📚 Kaynak: ' + esc(q.s) + '</p>' +
+                '<button class="btn" style="max-width:220px; margin:10px auto 0;" onclick="wisdom()">Yeni Soru Çek</button></div>');
+        } else {
+            log('Bilgelik: Soru yanlış yanıtlandı. Doğru cevap: ' + q.o[q.a] + ' (' + q.s + ')', 'warn');
+            document.getElementById('modalBody').insertAdjacentHTML('beforeend',
+                '<div style="margin-top:12px; padding:12px; border-radius:9px; background:#7f1d1d44; border:1px solid #ef4444;">' +
+                '<p style="color:#f87171; font-weight:bold;">❌ Yanlış. Doğru cevap: ' + esc(q.o[q.a]) + '</p>' +
+                '<p style="font-size:12px; color:#94a3b8; margin-top:4px;">📚 Kaynak: ' + esc(q.s) + '</p>' +
+                '<button class="btn" style="max-width:220px; margin:10px auto 0;" onclick="wisdom()">Tekrar Dene</button></div>');
+        }
+    }
+
+    /* ---------- 💼 KARİYER & ÇALIŞMA ---------- */
+    var JOBS = [
+        { id:0, name:'Şehir Vardiyası',   nk:60,  en:20, req:0,  icon:'🧰' },
+        { id:1, name:'Veri Teknisyeni',   nk:95,  en:30, req:30, icon:'🖥️' },
+        { id:2, name:'Şehir Danışmanı',   nk:150, en:45, req:80, icon:'📊' }
+    ];
+    function career(){
+        if (!U || !U.agent) return;
+        var h = houseObj();
+        var html = '<p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Enerjin: <b style="color:#4ade80;">' + U.enerji + '/100</b> — Ev bonusu: <b style="color:#fde68a;">' + h.bonus + '</b></p>';
+        JOBS.forEach(function(j){
+            var locked = U.prestij < j.req;
+            html += '<div class="item-card"><div style="flex:1;"><h5>' + j.icon + ' ' + j.name + '</h5>' +
+                    '<p>+' + j.nk + ' NK — ' + j.en + ' enerji harcar' + (j.req ? ' — Gerekli Prestij: ' + j.req : '') + '</p></div>' +
+                    '<button class="buy-btn" ' + (locked ? 'disabled' : '') + ' onclick="doWork(' + j.id + ')">' + (locked ? '🔒 Kilitli' : 'Çalış') + '</button></div>';
+        });
+        openModal('💼 Kariyer & Çalışma', html);
+    }
+    function doWork(id){
+        var j = JOBS.filter(function(x){ return x.id === id; })[0];
+        if (!j) return;
+        if (U.prestij < j.req) { toast('Bu iş için ' + j.req + ' prestij gerekiyor.', 'err'); return; }
+        if (U.enerji < j.en) { toast('Enerjin yetersiz! Dinlenmek için enerji içeceği alabilirsin.', 'err'); return; }
+        var gain = j.nk;
+        if (U.agent.house === 'teknoloji') gain = Math.round(gain * 1.2);
+        if (U.agent.house === 'selale') gain += 10;
+        if (U.hasCar) gain += 15;
+        U.nk += gain; U.enerji -= j.en;
+        renderStats(); gainXp(8);
+        log('Kariyer: ' + j.name + ' tamamlandı. Maaş hesaba yattı. (+' + gain + ' NK, +8 XP)', 'ok');
+        toast('+' + gain + ' NK kazandın!', 'ok');
+        closeModal();
+    }
+
+    /* ---------- 🛒 MARKET & ALIŞVERİŞ ---------- */
+    var ITEMS = [
+        { id:'Enerji İçeceği', icon:'🥤', price:25,  desc:'+40 enerji (anında)',            act:'energy' },
+        { id:'Ruhani Çay',     icon:'🍵', price:40,  desc:'+25 enerji, +2 itibar',          act:'tea' },
+        { id:'Bilgelik Kitabı',icon:'📕', price:80,  desc:'Kalıcı +8 prestij',              act:'book' },
+        { id:'Şık Kıyafet',    icon:'👕', price:60,  desc:'+12 itibar',                     act:'cloth' },
+        { id:'Amblem Monturu', icon:'🖼️', price:120, desc:'Onur nişanı: +20 prestij',       act:'frame' },
+        { id:'Otonom Araç',    icon:'🚙', price:450, desc:'Kalıcı: her vardiyada +15 NK prim', act:'car', unique:true }
+    ];
+    function market(){
+        if (!U || !U.agent) return;
+        var html = '<p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Bakiyen: <b style="color:#4ade80;">' + U.nk + ' NK</b></p>';
+        ITEMS.forEach(function(it){
+            var owned = it.unique && U.hasCar;
+            html += '<div class="item-card"><div style="flex:1;"><h5>' + it.icon + ' ' + it.id + '</h5><p>' + it.desc + '</p></div>' +
+                    '<button class="buy-btn" ' + ((owned || U.nk < it.price) ? 'disabled' : '') + ' onclick="buyItem(\'' + it.id + '\')">' +
+                    (owned ? '✅ Sahipsin' : it.price + ' NK') + '</button></div>';
+        });
+        openModal('🛒 NÜVRA Market', html);
+    }
+    function buyItem(id){
+        var it = ITEMS.filter(function(x){ return x.id === id; })[0];
+        if (!it) return;
+        if (it.unique && U.hasCar) return;
+        if (U.nk < it.price) { toast('Yetersiz bakiye! ' + it.price + ' NK gerekiyor.', 'err'); return; }
+        U.nk -= it.price;
+        if (it.act === 'energy') U.enerji = Math.min(100, U.enerji + 40);
+        if (it.act === 'tea') { U.enerji = Math.min(100, U.enerji + 25); U.itibar += 2; }
+        if (it.act === 'book') U.prestij += 8;
+        if (it.act === 'cloth') U.itibar += 12;
+        if (it.act === 'frame') U.prestij += 20;
+        if (it.act === 'car') U.hasCar = true;
+        if (!it.unique) U.inv[it.id] = (U.inv[it.id] || 0) + 1;
+        renderStats(); gainXp(5);
+        log('Market: ' + it.id + ' satın alındı. (-' + it.price + ' NK, +5 XP)', 'ok');
+        toast(it.icon + ' ' + it.id + ' satın alındı!', 'ok');
+        market();
+    }
+
+    /* ---------- ⚖️ ANAYASA & MAHKEME ---------- */
+    var LAWS = [
+        ['Madde 1 — Meritokrasi İlkesi','NÜVRA\'da her makam, liyakat ve prestij ölçüsünde çıkar. Kimlik değil, emek konuşur.'],
+        ['Madde 2 — Bilgi Bağışıklılığı','Hiçbir ajan bilgisizlikten cezalandırılamaz; ancak bilgini paylaşmayan da liyakat toplayamaz.'],
+        ['Madde 3 — Anıt Saygısı','Atatürk Anıtı Meydanı şehrin dokunulmaz kalbidir; saygı duruşu her vatandaşın hakkıdır.'],
+        ['Madde 4 — Adil Kredi','NÜVRA Kredisi yalnızca üretime ve öğrenmeye harcanabilir; israf mahkemeye taşınır.'],
+        ['Madde 5 — Canlı Şehir','Sokaklar, dereler ve gökdelenler her vatandaşın ortak sorumluluğudur.']
+    ];
+    var CITY_YES = 8620, CITY_NO = 2140;
+    function voteWeight(){ return 1 + Math.floor(U.prestij / 50); }
+    function court(){
+        if (!U || !U.agent) return;
+        var html = '<p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">🏛️ NÜVRA Anayasası ve Liyakat Yasası oylama durumu.</p>';
+        LAWS.forEach(function(l){
+            html += '<div class="law-item"><b>' + l[0] + '</b><br>' + l[1] + '</div>';
+        });
+        var myW = voteWeight();
+        var yes = CITY_YES + (U.vote === 'evet' ? myW : 0);
+        var no = CITY_NO + (U.vote === 'hayir' ? myW : 0);
+        var total = yes + no;
+        var yp = Math.round(yes * 100 / total);
+        html += '<div style="margin-top:14px; padding:12px; background:#0f172a; border:1px solid #374151; border-radius:9px;">' +
+                '<h5 style="color:#fde68a; margin-bottom:8px;">🗳️ Liyakat Yasası Oylaması (Genel Senet)</h5>' +
+                '<div class="vote-bar"><div class="vote-yes" style="width:' + yp + '%;"></div><div class="vote-no" style="width:' + (100 - yp) + '%;"></div></div>' +
+                '<p style="font-size:12px; color:#4ade80;">✔ Evet: ' + yes.toLocaleString('tr-TR') + '</p>' +
+                '<p style="font-size:12px; color:#f87171;">✘ Hayır: ' + no.toLocaleString('tr-TR') + '</p>' +
+                '<p style="font-size:12px; color:#94a3b8; margin-top:6px;">Oy ağırlığın: <b style="color:#facc15;">x' + myW + '</b> (50 prestij başına +1) — Durumun: <b>' + (U.vote ? 'Oyun kullanıldı (' + U.vote + ')' : 'Oy kullanmadın') + '</b></p>' +
+                '<div style="display:flex; gap:8px; margin-top:10px;">' +
+                '<button class="buy-btn" style="flex:1;" onclick="voteLaw(\'evet\')">Evet\'e Oy Ver</button>' +
+                '<button class="buy-btn" style="flex:1; background:#dc2626;" onclick="voteLaw(\'hayir\')">Hayır\'a Oy Ver</button>' +
+                '</div></div>';
+        openModal('⚖️ Anayasa & Mahkeme', html);
+    }
+    function voteLaw(side){
+        if (U.prestij < 10) { toast('Oy vermek için en az 10 prestij gerekir.', 'err'); return; }
+        var firstVote = !U.vote;
+        U.vote = side;
+        var myW = voteWeight();
+        renderStats();
+        if (firstVote) gainXp(5);
+        log('Mahkeme: ' + U.agent.name + ' Liyakat Yasası oylamasında "' + side + '" yönünde x' + myW + ' ağırlıkla oy kullandı.', 'sys');
+        toast('Oyun x' + myW + ' ağırlıkla kaydedildi.', 'ok');
+        court();
+    }
+
+    /* ---------- 🏆 LİDERLİK TABLOSU ---------- */
+    function lbScore(s){ return s.level * 500 + s.madalya * 50 + s.prestij * 10 + s.itibar; }
+    function leaderboard(){
+        if (!U || !U.agent) return;
+        var rows = [];
+        for (var u in db.users){
+            var rec = db.users[u];
+            if (!rec.agent) continue;
+            normalizeUser(rec);
+            rows.push({ user: u, agent: rec.agent.name, level: rec.save.level, prestij: rec.save.prestij,
+                        madalya: rec.save.madalya, nk: rec.save.nk, score: lbScore(rec.save) });
+        }
+        rows.sort(function(a, b){ return b.score - a.score; });
+        var medals = ['🥇','🥈','🥉'];
+        var html = '<p style="font-size:13px; color:#94a3b8; margin-bottom:12px;">Şehir genel sıralama — Puan = Seviye×500 + Madalya×50 + Prestij×10 + İtibar. Bu tarayıcıda kayıtlı tüm ajanlar yarışır.</p>';
+        if (rows.length === 0) html += '<p style="color:#94a3b8;">Henüz kayıtlı ajan yok.</p>';
+        rows.forEach(function(r, i){
+            var rank = i < 3 ? medals[i] : (i + 1) + '.';
+            html += '<div class="lb-row' + (r.user === curUser ? ' me' : '') + '">' +
+                    '<span class="lb-rank">' + rank + '</span>' +
+                    '<span class="lb-name"><b>' + esc(r.agent) + '</b> (' + esc(r.user) + ')' +
+                    '<small>⭐ Seviye ' + r.level + ' | 🎖️ ' + r.madalya + ' madalya | ' + r.nk + ' NK</small></span>' +
+                    '<span class="lb-stat"><b>' + r.score.toLocaleString('tr-TR') + '</b>puan</span>' +
+                    '</div>';
+        });
+        var myPos = rows.map(function(r){ return r.user; }).indexOf(curUser) + 1;
+        html += '<p style="margin-top:10px; font-size:13px; color:#d946ef;">Senin sıran: ' + (myPos > 0 ? myPos + '. / ' + rows.length : '-') + '</p>';
+        openModal('🏆 NÜVRA Liderlik Tablosu', html);
+    }
+
+    /* ---------- 🤖 AJANLA SOHBET / OTPİLOT RAPORU ---------- */
+    function chatModal(){
+        if (!U || !U.agent) return;
+        openModal('🤖 Ajanla Sohbet — ' + U.agent.name,
+            '<div id="chatArea" class="chat-area"></div>' +
+            '<div class="chat-input-row">' +
+            '<input type="text" id="chatInput" placeholder="Ajana bir şey yaz..." onkeydown="if(event.key===\'Enter\')sendChat()">' +
+            '<button class="buy-btn" onclick="sendChat()">Gönder</button>' +
+            '<button class="buy-btn" style="background:#2563eb;" onclick="otopilot()">📋 Otopilot Raporu</button>' +
+            '</div>');
+        var area = document.getElementById('chatArea');
+        area.innerHTML = '<p class="ag">[' + esc(U.agent.name) + ']: Bağlantı kuruldu patron. Bugün şehirde hava ' + PHASES[phaseIdx].name.toLowerCase() + ' çizgisinde, derede balıklar oynuyor. Ne varsa söyle.</p>';
+    }
+    function pushChat(who, text){
+        var area = document.getElementById('chatArea');
+        if (!area) return;
+        var d = document.createElement('div');
+        d.className = who === 'me' ? 'me' : 'ag';
+        d.textContent = (who === 'me' ? '[Sen]: ' : '[' + U.agent.name + ']: ') + text;
+        area.appendChild(d);
+        area.scrollTop = area.scrollHeight;
+    }
+    function sendChat(){
+        var inp = document.getElementById('chatInput');
+        var t = inp.value.trim();
+        if (!t) return;
+        inp.value = '';
+        pushChat('me', t);
+        setTimeout(function(){ pushChat('ag', agentReply(t)); }, 350);
+    }
+    function agentReply(t){
+        t = t.toLowerCase();
+        if (t.indexOf('merhaba') > -1 || t.indexOf('selam') > -1) return 'Merhaba patron! Şelale kenarında seni bekliyorum.';
+        if (t.indexOf('seviye') > -1 || t.indexOf('xp') > -1) return 'Şu an Seviye ' + U.level + "'deyiz, " + U.xp + '/' + xpNeed() + ' XP. İş, görev ve saygı duruşu XP doldurur!';
+        if (t.indexOf('nasıl') > -1) return 'Enerjim tavan, devrelerim serin. ' + U.enerji + ' enerjiyle şehri gezmeye hazırım!';
+        if (t.indexOf('kariyer') > -1 || t.indexOf('iş') > -1) return 'Teknoloji Dairesi\'nde vardiya VAR. Şehir Danışmanlığı için 80 prestij şart. Bak: Kariyer & Çalışma paneli.';
+        if (t.indexOf('market') > -1 || t.indexOf('al') > -1) return 'Bakiyemiz ' + U.nk + ' NK. Bilgelik Kitabı prestij için birebir!';
+        if (t.indexOf('atatürk') > -1 || t.indexOf('anıt') > -1) return 'Meydanda saygı duruşu yapıp madalya toplayalım. Liyakat, NÜVRA\'nın temelidir.';
+        if (t.indexOf('anayasa') > -1 || t.indexOf('oy') > -1 || t.indexOf('mahkeme') > -1) return 'Liyakat Yasası oylaması sürüyor. Prestij arttıkça oy ağırlığın da artıyor!';
+        if (t.indexOf('görev') > -1 || t.indexOf('bilgelik') > -1) return 'Kütüphaneden kitap tabanlı görevler çekelim; doğru cevap NK ve prestij getirir.';
+        if (t.indexOf('lider') > -1 || t.indexOf('sırala') > -1 || t.indexOf('tablo') > -1) return 'Liderlik tablosunda ' + U.level * 500 + U.madalya * 50 + U.prestij * 10 + U.itibar + ' puanla yarışıyoruz. Zirveye oynayalım!';
+        if (t.indexOf('gece') > -1 || t.indexOf('gündüz') > -1 || t.indexOf('hava') > -1) return 'Şu an şehirde ' + PHASES[phaseIdx].name + ' dönemi hüküm sürüyor. Yıldızlar gece muhteşem oluyor.';
+        if (t.indexOf('teşekkür') > -1) return 'Ne demek patron, otopilot nöbetimdeyim her zaman.';
+        if (t.indexOf('ev') > -1) return houseObj().name + ' bizi bekliyor. ' + houseObj().bonus + ' avantajıyla hiç yerimiz yok!';
+        var pool = [
+            'Patron, bugün mahalledeki dükkanların piyasa durumu gayet stabil.',
+            'Şelale kenarında biraz dinlendim, okuma enerjim yerinde!',
+            'Şehrin bekası için oylama yapılırsa oylarımızı liyakatten yana kullanalım.',
+            'Sokaklardaki NPC ajanlar da bugün oldukça neşeli görünüyor.',
+            'Derede yeni bir balık sürüsü geldi, akşam manzarası muhteşem olacak.'
+        ];
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+    function otopilot(){
+        if (!U || !U.agent) return;
+        var r = '📊 OTPİLOT RAPORU — ' + new Date().toLocaleString('tr-TR') +
+                ' | Ajan: ' + U.agent.name + ' (' + U.agent.gender + ')' +
+                ' | Ev: ' + houseObj().name +
+                ' | Seviye: ' + U.level + ' (XP ' + U.xp + '/' + xpNeed() + ')' +
+                ' | Kasa: ' + U.nk + ' NK' +
+                ' | Prestij: ' + U.prestij +
+                ' | İtibar: ' + U.itibar +
+                ' | Madalya: ' + U.madalya +
+                ' | Enerji: ' + U.enerji + '/100' +
+                ' | Çözülen bilgelik görevi: ' + U.solvedQ.length + '/' + QUESTIONS.length;
+        if (U.nk < 60) r += ' | Tavsiye: Kasa düşük, hemen bir vardiyaya çık!';
+        else if (U.prestij < 50) r += ' | Tavsiye: Prestij için bilgelik görevleri ve anıt meydanı seni bekliyor.';
+        else r += ' | Tavsiye: Şehir danışmanlığına aday durumdasın, Otonom Araç için biriktirebilirsin.';
+        pushChat('ag', r);
+        log('Otopilot: ' + U.agent.name + ' periyodik raporu iletti.', 'chat');
+    }
+
+    /* ---------- BAŞLATMA ---------- */
+    window.onload = function(){
+        loadDB();
+        var s = null;
+        try { s = localStorage.getItem(SES_KEY); } catch(e){}
+        if (s && db.users[s]){
+            curUser = s; U = db.users[s];
+            if (U.agent) enterGame(); else { enterCreator(); toast('Hoş geldin ' + s + '! Ajanını oluşturup şehre gir.', 'ok'); }
+        } else {
+            showScreen('authScreen');
+        }
+    };
+</script>
+
+</body>
+</html>
